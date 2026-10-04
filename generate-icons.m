@@ -42,10 +42,6 @@ static NSImage *mark(NSColor *color) {
         [offset translateXBy:-NSMidX(bounds) yBy:-NSMidY(bounds)];
         [pointer transformUsingAffineTransform:offset];
         window.windingRule = NSWindingRuleEvenOdd;
-        for (NSInteger index = 0; index < 3; index++) {
-            [window appendBezierPath:[NSBezierPath bezierPathWithOvalInRect:
-                NSMakeRect(3.4 + index * 2.4, 14.7, 1.3, 1.3)]];
-        }
         [window appendBezierPath:header];
         [window appendBezierPath:pointer];
         [window fill];
