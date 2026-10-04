@@ -139,9 +139,9 @@ static NSImage *inactive_icon(NSImage *base) {
         CGContextRef graphics = NSGraphicsContext.currentContext.CGContext;
         CGContextSaveGState(graphics);
         CGContextSetBlendMode(graphics, kCGBlendModeClear);
-        CGContextFillEllipseInRect(graphics, CGRectMake(8.5, 8.5, 10, 10));
+        CGContextFillEllipseInRect(graphics, CGRectMake(10, 10, 8.5, 8.5));
         CGContextRestoreGState(graphics);
-        [badge drawInRect:NSMakeRect(9.5, 9.5, 8.5, 8.5)];
+        [badge drawInRect:NSMakeRect(10.5, 10.5, 7.5, 7.5)];
         return YES;
     }];
     image.template = YES;
