@@ -6,6 +6,8 @@ static NSImage *mark(NSColor *color) {
         [color setFill];
         NSBezierPath *window = [NSBezierPath bezierPathWithRoundedRect:NSMakeRect(1, 1, 16, 16)
             xRadius:4 yRadius:4];
+        NSBezierPath *header = [NSBezierPath bezierPathWithRoundedRect:NSMakeRect(3.5, 13, 11, 1.2)
+            xRadius:0.6 yRadius:0.6];
 
         NSBezierPath *pointer = [NSBezierPath bezierPath];
         [pointer moveToPoint:NSMakePoint(6.1, 12.8)];
@@ -35,11 +37,12 @@ static NSImage *mark(NSColor *color) {
         [pointer closePath];
         NSAffineTransform *offset = [NSAffineTransform transform];
         NSRect bounds = pointer.bounds;
-        [offset translateXBy:NSMidX(bounds) + 0.6 yBy:NSMidY(bounds) + 0.6];
-        [offset scaleBy:2.0 / 3.0];
+        [offset translateXBy:NSMidX(bounds) + 0.6 yBy:NSMidY(bounds)];
+        [offset scaleBy:0.72];
         [offset translateXBy:-NSMidX(bounds) yBy:-NSMidY(bounds)];
         [pointer transformUsingAffineTransform:offset];
         window.windingRule = NSWindingRuleEvenOdd;
+        [window appendBezierPath:header];
         [window appendBezierPath:pointer];
         [window fill];
         return YES;
