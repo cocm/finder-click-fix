@@ -7,7 +7,7 @@ if [ "$#" -gt 2 ] || { [ "$#" -gt 0 ] && [ "$1" != "--dmg" ]; } ||
     exit 2
 fi
 # Developer ID Application: Keita Matsubara (7L8SQDRWQK)
-signing_identity="64EFA51E321B79D5E74160BAD9206B7D827E6E12"
+signing_identity="${SIGNING_IDENTITY:-64EFA51E321B79D5E74160BAD9206B7D827E6E12}"
 if ! security find-identity -v -p codesigning | grep -Fq " $signing_identity "; then
     printf '%s\n' 'Developer ID署名証明書が見つかりません。ビルドを中止します。' >&2
     exit 1
