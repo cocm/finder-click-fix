@@ -4,22 +4,36 @@ static NSImage *mark(NSColor *color) {
     return [NSImage imageWithSize:NSMakeSize(18, 18) flipped:NO drawingHandler:^BOOL(NSRect rect) {
         (void)rect;
         [color setFill];
-        NSBezierPath *window = [NSBezierPath bezierPathWithRoundedRect:NSMakeRect(2, 2, 14, 14)
-            xRadius:2.6 yRadius:2.6];
-        NSBezierPath *header = [NSBezierPath bezierPathWithRoundedRect:NSMakeRect(3.5, 11.7, 11, 1.2)
-            xRadius:0.6 yRadius:0.6];
+        NSBezierPath *window = [NSBezierPath bezierPathWithRoundedRect:NSMakeRect(1, 1, 16, 16)
+            xRadius:4 yRadius:4];
 
         NSBezierPath *pointer = [NSBezierPath bezierPath];
-        [pointer moveToPoint:NSMakePoint(7.9, 10.3)];
-        [pointer lineToPoint:NSMakePoint(7.9, 4.7)];
-        [pointer lineToPoint:NSMakePoint(9.6, 6.1)];
-        [pointer lineToPoint:NSMakePoint(10.9, 4.0)];
-        [pointer lineToPoint:NSMakePoint(12.3, 4.9)];
-        [pointer lineToPoint:NSMakePoint(11.0, 7.0)];
-        [pointer lineToPoint:NSMakePoint(13.3, 7.3)];
+        [pointer moveToPoint:NSMakePoint(6.1, 12.8)];
+        [pointer curveToPoint:NSMakePoint(5.7, 12.4)
+            controlPoint1:NSMakePoint(5.85, 12.95) controlPoint2:NSMakePoint(5.7, 12.7)];
+        [pointer lineToPoint:NSMakePoint(5.7, 6.0)];
+        [pointer curveToPoint:NSMakePoint(6.5, 5.6)
+            controlPoint1:NSMakePoint(5.7, 5.55) controlPoint2:NSMakePoint(6.1, 5.4)];
+        [pointer lineToPoint:NSMakePoint(7.6, 6.45)];
+        [pointer curveToPoint:NSMakePoint(8.15, 6.35)
+            controlPoint1:NSMakePoint(7.83, 6.64) controlPoint2:NSMakePoint(8.0, 6.61)];
+        [pointer lineToPoint:NSMakePoint(9.3, 4.5)];
+        [pointer curveToPoint:NSMakePoint(10.1, 4.3)
+            controlPoint1:NSMakePoint(9.45, 4.22) controlPoint2:NSMakePoint(9.8, 4.12)];
+        [pointer lineToPoint:NSMakePoint(11.0, 4.9)];
+        [pointer curveToPoint:NSMakePoint(11.2, 5.7)
+            controlPoint1:NSMakePoint(11.27, 5.1) controlPoint2:NSMakePoint(11.39, 5.4)];
+        [pointer lineToPoint:NSMakePoint(10.05, 7.65)];
+        [pointer curveToPoint:NSMakePoint(10.36, 8.03)
+            controlPoint1:NSMakePoint(9.91, 7.86) controlPoint2:NSMakePoint(10.05, 8.02)];
+        [pointer lineToPoint:NSMakePoint(12.3, 8.2)];
+        [pointer curveToPoint:NSMakePoint(12.5, 9.0)
+            controlPoint1:NSMakePoint(12.77, 8.25) controlPoint2:NSMakePoint(12.92, 8.75)];
+        [pointer lineToPoint:NSMakePoint(6.55, 12.7)];
+        [pointer curveToPoint:NSMakePoint(6.1, 12.8)
+            controlPoint1:NSMakePoint(6.4, 12.82) controlPoint2:NSMakePoint(6.25, 12.85)];
         [pointer closePath];
         window.windingRule = NSWindingRuleEvenOdd;
-        [window appendBezierPath:header];
         [window appendBezierPath:pointer];
         [window fill];
         return YES;

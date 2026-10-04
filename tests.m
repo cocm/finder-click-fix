@@ -328,7 +328,7 @@ static void test_tap(CGEventRef event) {
     fixture.trusted = false;
     [delegate startFix];
     assert(fixture.tap_creations == 0);
-    check_status(delegate, status, @"Inactive: Accessibility required", false);
+    check_status(delegate, status, @"Inactive: Permission required", false);
     fixture.trusted = true;
     [delegate startFix];
     check_status(delegate, status, @"Active", true);
@@ -364,9 +364,9 @@ static void test_tap(CGEventRef event) {
     // An enabled tap alone must never display Active without AX permission.
     [delegate updateStatus];
     assert(fixture.tap_enabled);
-    check_status(delegate, status, @"Inactive: Accessibility required", false);
+    check_status(delegate, status, @"Inactive: Permission required", false);
     [delegate menuWillOpen:menu];
-    check_status(delegate, status, @"Inactive: Accessibility required", false);
+    check_status(delegate, status, @"Inactive: Permission required", false);
     fixture.trusted = true;
     [delegate menuWillOpen:menu];
     assert(fixture.tap_creations == 3);

@@ -197,7 +197,7 @@ static CGEventRef handle_event(CGEventTapProxy proxy, CGEventType type,
     bool trusted = AXIsProcessTrusted();
     bool running = trusted && tap_is_running(&_context);
     NSString *state = running ? @"Active" : trusted
-        ? @"Inactive: Mouse input unavailable" : @"Inactive: Accessibility required";
+        ? @"Inactive: Mouse input unavailable" : @"Inactive: Permission required";
     _stateItem.title = state;
     _stateLabel.stringValue = state;
     _stateSymbol.image = [NSImage imageWithSystemSymbolName:running ? @"checkmark.circle.fill" : @"info.circle.fill"
@@ -286,7 +286,7 @@ static CGEventRef handle_event(CGEventTapProxy proxy, CGEventType type,
     _stateItem.view = header;
     [menu addItem:_stateItem];
     [menu addItem:NSMenuItem.separatorItem];
-    _permissionItem = [[NSMenuItem alloc] initWithTitle:@"Accessibility Settings…"
+    _permissionItem = [[NSMenuItem alloc] initWithTitle:@"Permission Settings…"
         action:@selector(openAccessibility:) keyEquivalent:@""];
     _permissionItem.target = self;
     [menu addItem:_permissionItem];

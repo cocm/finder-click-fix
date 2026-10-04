@@ -4,11 +4,11 @@ Clicking an inactive Finder window while moving the mouse even slightly can leav
 
 [Download (Apple Silicon)](https://github.com/cocm/finder-click-fix/releases/latest) · under 300 KB
 
-Requires macOS 13 or later. Open the DMG and drag the app to Applications. Launch it and allow Accessibility in System Settings. Quit from the menu bar.
+Requires macOS 13 or later. Open the DMG and drag the app to Applications. Launch it and allow the app in System Settings → Privacy & Security → Device Control and Data Access (Accessibility on macOS 13–26). Quit from the menu bar.
 
 Desktop, dialogs, and sheets are excluded.
 
-An info badge on the menu bar icon means the fix is inactive. Open the menu for the reason and Accessibility Settings.
+An info badge on the menu bar icon means the fix is inactive. Open the menu for the reason and Permission Settings.
 
 ## License
 
