@@ -33,6 +33,9 @@ static NSImage *mark(NSColor *color) {
         [pointer curveToPoint:NSMakePoint(6.1, 12.8)
             controlPoint1:NSMakePoint(6.4, 12.82) controlPoint2:NSMakePoint(6.25, 12.85)];
         [pointer closePath];
+        NSAffineTransform *offset = [NSAffineTransform transform];
+        [offset translateXBy:0.6 yBy:0.6];
+        [pointer transformUsingAffineTransform:offset];
         window.windingRule = NSWindingRuleEvenOdd;
         [window appendBezierPath:pointer];
         [window fill];
