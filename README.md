@@ -2,6 +2,8 @@
 
 Finderのウィンドウをクリックしたとき、先にFinderをアクティブにする小さなメニューバーアプリ。
 
+[ダウンロード（Apple Silicon）](https://github.com/cocm/finder-click-fix/releases/latest)。DMGを開き、アプリをApplicationsフォルダへコピーしてください。
+
 macOS 13以降。起動後、システム設定でアクセシビリティを許可してください。終了はメニューバーから。
 デスクトップ・ダイアログ・シートは対象外です。
 
