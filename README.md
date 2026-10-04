@@ -1,30 +1,31 @@
 # Finder Click Fix
 
-Finderのウィンドウをクリックしたとき、先にFinderをアクティブにする小さなメニューバーアプリ。
+Clicking an inactive Finder window while moving the mouse even slightly can leave it in the background. This tiny menu bar app brings the clicked window to the front.
 
-[ダウンロード（Apple Silicon）](https://github.com/cocm/finder-click-fix/releases/latest)。DMGを開き、アプリをApplicationsフォルダへコピーしてください。
+[Download (Apple Silicon)](https://github.com/cocm/finder-click-fix/releases/latest) · under 300 KB
 
-macOS 13以降。起動後、システム設定でアクセシビリティを許可してください。終了はメニューバーから。
-デスクトップ・ダイアログ・シートは対象外です。
+Requires macOS 13 or later. Open the DMG and drag the app to Applications. Launch it and allow Accessibility in System Settings. Quit from the menu bar.
 
-## ライセンス
+Desktop, dialogs, and sheets are excluded.
+
+## License
 
 [MIT](LICENSE)
 
 <details>
-<summary>開発者向け</summary>
+<summary>Developers</summary>
 
-### ビルド
+### Build
 
-Xcode Command Line Toolsと、自分のDeveloper ID Application署名証明書が必要です。
-`security find-identity -v -p codesigning`で証明書のSHA-1を確認し、指定します。
+Requires Xcode Command Line Tools and your own Developer ID Application certificate.
+Find its SHA-1 with `security find-identity -v -p codesigning`:
 
 ```sh
-export SIGNING_IDENTITY="証明書のSHA-1"
+export SIGNING_IDENTITY="YOUR_CERTIFICATE_SHA1"
 sh build.sh
 ```
 
-`/Applications/Finder Click Fix.app`に設置します。証明書の指定を省略すると、`build.sh`の既定値を使います。
+Installs to `/Applications/Finder Click Fix.app`. If `SIGNING_IDENTITY` is unset, the script uses its default certificate.
 
 ### DMG
 
@@ -32,19 +33,19 @@ sh build.sh
 sh build.sh --dmg
 ```
 
-署名済み・未公証のDMGを`dist/`に生成します。公証する場合は、自分のApple DeveloperのTeam IDで認証をKeychainへ一度登録します。
+Creates a signed, unnotarized DMG in `dist/`. For notarization, store your credentials in Keychain once using your Apple Developer Team ID:
 
 ```sh
-xcrun notarytool store-credentials finder-click-fix --team-id "自分のTeam ID"
+xcrun notarytool store-credentials finder-click-fix --team-id "YOUR_TEAM_ID"
 sh build.sh --dmg finder-click-fix
 ```
 
-### テスト
+### Tests
 
 ```sh
 sh test.sh
 ```
 
-AXと入力を模擬した回帰テストです。実際のクリック・ドラッグ・権限復旧は実機確認が必要です。
+Regression tests use simulated Accessibility and input events. Actual clicks, drags, and permission recovery need testing on a Mac.
 
 </details>
