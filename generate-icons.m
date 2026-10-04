@@ -6,42 +6,14 @@ static NSImage *mark(NSColor *color) {
         [color setFill];
         NSBezierPath *window = [NSBezierPath bezierPathWithRoundedRect:NSMakeRect(1, 1, 16, 16)
             xRadius:4 yRadius:4];
-        NSBezierPath *header = [NSBezierPath bezierPathWithRoundedRect:NSMakeRect(3.5, 13.2, 11, 0.8)
-            xRadius:0.4 yRadius:0.4];
-
-        NSBezierPath *pointer = [NSBezierPath bezierPath];
-        [pointer moveToPoint:NSMakePoint(6.15, 12.8)];
-        [pointer curveToPoint:NSMakePoint(5.9, 12.64)
-            controlPoint1:NSMakePoint(6.04, 12.88) controlPoint2:NSMakePoint(5.9, 12.8)];
-        [pointer lineToPoint:NSMakePoint(5.9, 6.4)];
-        [pointer curveToPoint:NSMakePoint(6.2, 6.25)
-            controlPoint1:NSMakePoint(5.9, 6.17) controlPoint2:NSMakePoint(6.04, 6.1)];
-        [pointer lineToPoint:NSMakePoint(7.7, 7.6)];
-        [pointer curveToPoint:NSMakePoint(7.97, 7.53)
-            controlPoint1:NSMakePoint(7.8, 7.69) controlPoint2:NSMakePoint(7.9, 7.65)];
-        [pointer lineToPoint:NSMakePoint(9.5, 4.61)];
-        [pointer curveToPoint:NSMakePoint(9.8, 4.49)
-            controlPoint1:NSMakePoint(9.57, 4.47) controlPoint2:NSMakePoint(9.68, 4.42)];
-        [pointer lineToPoint:NSMakePoint(10.8, 5.05)];
-        [pointer curveToPoint:NSMakePoint(10.87, 5.31)
-            controlPoint1:NSMakePoint(10.92, 5.12) controlPoint2:NSMakePoint(10.94, 5.19)];
-        [pointer lineToPoint:NSMakePoint(9.41, 8.09)];
-        [pointer curveToPoint:NSMakePoint(9.55, 8.34)
-            controlPoint1:NSMakePoint(9.34, 8.22) controlPoint2:NSMakePoint(9.4, 8.33)];
-        [pointer lineToPoint:NSMakePoint(12.15, 8.48)];
-        [pointer curveToPoint:NSMakePoint(12.24, 8.79)
-            controlPoint1:NSMakePoint(12.32, 8.49) controlPoint2:NSMakePoint(12.38, 8.67)];
-        [pointer lineToPoint:NSMakePoint(6.15, 12.8)];
-        [pointer closePath];
-        NSAffineTransform *offset = [NSAffineTransform transform];
-        NSRect bounds = pointer.bounds;
-        [offset translateXBy:NSMidX(bounds) + 1.0 yBy:NSMidY(bounds) - 1.9];
-        [offset scaleBy:0.72];
-        [offset translateXBy:-NSMidX(bounds) yBy:-NSMidY(bounds)];
-        [pointer transformUsingAffineTransform:offset];
+        NSBezierPath *header = [NSBezierPath bezierPathWithRoundedRect:NSMakeRect(3.5, 13, 11, 1.2)
+            xRadius:0.6 yRadius:0.6];
         window.windingRule = NSWindingRuleEvenOdd;
         [window appendBezierPath:header];
-        [window appendBezierPath:pointer];
+        [window appendBezierPath:[NSBezierPath bezierPathWithOvalInRect:NSMakeRect(5.3, 3.8, 7.4, 7.4)]];
+        [window appendBezierPath:[NSBezierPath bezierPathWithOvalInRect:NSMakeRect(6.1, 4.6, 5.8, 5.8)]];
+        [window appendBezierPath:[NSBezierPath bezierPathWithOvalInRect:NSMakeRect(7.1, 5.6, 3.8, 3.8)]];
+        [window appendBezierPath:[NSBezierPath bezierPathWithOvalInRect:NSMakeRect(7.9, 6.4, 2.2, 2.2)]];
         [window fill];
         return YES;
     }];
