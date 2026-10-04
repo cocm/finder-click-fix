@@ -216,21 +216,24 @@ static void fake_CGEventTapEnable(CFMachPortRef tap, bool enable) {
     if (!fixture.fail_enable) fixture.tap_enabled = true;
 }
 
-@interface TestDelegate : AppDelegate
-@property(nonatomic, copy) NSString *lastState;
-@end
-@implementation TestDelegate
-- (void)updateStatus:(NSString *)state {
-    [super updateStatus:state];
-    self.lastState = state;
-}
-@end
-
 @interface TestStatusItem : NSObject
 @property(nonatomic, strong) NSButton *button;
 @end
 @implementation TestStatusItem
 @end
+
+static void check_status(AppDelegate *delegate, TestStatusItem *status, NSString *expected,
+                         bool running) {
+    NSMenuItem *state = [delegate valueForKey:@"stateItem"];
+    NSMenuItem *permission = [delegate valueForKey:@"permissionItem"];
+    NSTextField *label = [delegate valueForKey:@"stateLabel"];
+    assert([state.title isEqualToString:expected]);
+    assert([label.stringValue isEqualToString:expected]);
+    assert(permission.hidden == running);
+    assert(status.button.image == [delegate valueForKey:running ? @"normalImage" : @"inactiveImage"]);
+    assert([status.button.toolTip isEqualToString:[@"Finder Click Fix — " stringByAppendingString:expected]]);
+    assert([status.button.accessibilityValue isEqualToString:expected]);
+}
 
 static void check_event(CGEventRef event, CGEventType type) {
     Context context = {.system = system_element, .tap = tap_token};
@@ -309,52 +312,65 @@ static void test_focus(CGEventRef event) {
 
 static void test_tap(CGEventRef event) {
     reset_fixture();
-    TestDelegate *delegate = [[TestDelegate alloc] initWithVerbose:false];
-    NSMenu *menu = [[NSMenu alloc] initWithTitle:@"Test"];
-    NSMenuItem *state = [[NSMenuItem alloc] initWithTitle:@"" action:NULL keyEquivalent:@""];
-    NSMenuItem *permission = [[NSMenuItem alloc] initWithTitle:@"" action:NULL keyEquivalent:@""];
+    AppDelegate *delegate = [[AppDelegate alloc] initWithVerbose:false];
+    NSMenu *menu = [delegate makeMenu];
     TestStatusItem *status = [[TestStatusItem alloc] init];
     status.button = [[NSButton alloc] initWithFrame:NSZeroRect];
+    NSImage *normal = [[NSImage alloc] initWithContentsOfFile:@"assets/StatusIcon@2x.png"];
+    assert(normal);
+    normal.size = NSMakeSize(18, 18);
+    normal.template = YES;
+    NSImage *inactive = inactive_icon(normal);
+    assert(inactive && ![normal.TIFFRepresentation isEqualToData:inactive.TIFFRepresentation]);
     [delegate setValue:status forKey:@"statusItem"];
-    [delegate setValue:state forKey:@"stateItem"];
-    [delegate setValue:permission forKey:@"permissionItem"];
+    [delegate setValue:normal forKey:@"normalImage"];
+    [delegate setValue:inactive forKey:@"inactiveImage"];
+    fixture.trusted = false;
     [delegate startFix];
-    assert([state.title isEqualToString:@"動作中"] && permission.hidden);
+    assert(fixture.tap_creations == 0);
+    check_status(delegate, status, @"Inactive: Accessibility required", false);
+    fixture.trusted = true;
+    [delegate startFix];
+    check_status(delegate, status, @"Active", true);
     [delegate menuWillOpen:menu];
     assert(fixture.tap_creations == 1 && fixture.tap_enables == 1);
     fixture.tap_enabled = false;
     [delegate menuWillOpen:menu];
-    assert(fixture.tap_enables == 2 && [state.title isEqualToString:@"動作中"]);
+    assert(fixture.tap_enables == 2);
+    check_status(delegate, status, @"Active", true);
     CGEventType disabled_types[] = {kCGEventTapDisabledByTimeout, kCGEventTapDisabledByUserInput};
     for (size_t i = 0; i < sizeof(disabled_types) / sizeof(disabled_types[0]); i++) {
         fixture.tap_enabled = false;
         fixture.fail_enable = true;
         check_event(event, disabled_types[i]);
         // Check immediately after the notification, before any menu interaction.
-        assert([state.title isEqualToString:@"マウス入力を取得できません"] && !permission.hidden);
-        assert([status.button.toolTip isEqualToString:@"Finder Click Fix — マウス入力を取得できません"]);
+        check_status(delegate, status, @"Inactive: Mouse input unavailable", false);
         [delegate menuWillOpen:menu];
-        assert([state.title isEqualToString:@"マウス入力を取得できません"]);
+        check_status(delegate, status, @"Inactive: Mouse input unavailable", false);
         fixture.fail_enable = false;
         check_event(event, disabled_types[i]);
-        assert(fixture.tap_enabled && [state.title isEqualToString:@"動作中"] && permission.hidden);
-        assert([status.button.toolTip isEqualToString:@"Finder Click Fix — 動作中"]);
+        assert(fixture.tap_enabled);
+        check_status(delegate, status, @"Active", true);
     }
     fixture.tap_valid = false;
     int enables = fixture.tap_enables;
     check_event(event, kCGEventTapDisabledByTimeout);
     assert(fixture.tap_enables == enables);
-    assert([state.title isEqualToString:@"マウス入力を取得できません"] && !permission.hidden);
-    assert([status.button.toolTip isEqualToString:@"Finder Click Fix — マウス入力を取得できません"]);
+    check_status(delegate, status, @"Inactive: Mouse input unavailable", false);
     [delegate menuWillOpen:menu];
     assert(fixture.tap_creations == 2 && fixture.tap_invalidations == 1);
-    assert([state.title isEqualToString:@"動作中"] && permission.hidden);
+    check_status(delegate, status, @"Active", true);
     fixture.trusted = false;
+    // An enabled tap alone must never display Active without AX permission.
+    [delegate updateStatus];
+    assert(fixture.tap_enabled);
+    check_status(delegate, status, @"Inactive: Accessibility required", false);
     [delegate menuWillOpen:menu];
-    assert([state.title isEqualToString:@"アクセシビリティ権限が必要"] && !permission.hidden);
+    check_status(delegate, status, @"Inactive: Accessibility required", false);
     fixture.trusted = true;
     [delegate menuWillOpen:menu];
-    assert(fixture.tap_creations == 3 && [state.title isEqualToString:@"動作中"]);
+    assert(fixture.tap_creations == 3);
+    check_status(delegate, status, @"Active", true);
     [delegate stopFix];
     for (int failure = 0; failure < 3; failure++) {
         reset_fixture();
@@ -362,10 +378,10 @@ static void test_tap(CGEventRef event) {
         fixture.fail_source = failure == 1;
         fixture.fail_enable = failure == 2;
         [delegate startFix];
-        assert([state.title isEqualToString:@"マウス入力を取得できません"] && !permission.hidden);
+        check_status(delegate, status, @"Inactive: Mouse input unavailable", false);
         fixture.fail_create = fixture.fail_source = fixture.fail_enable = false;
         [delegate menuWillOpen:menu];
-        assert([state.title isEqualToString:@"動作中"] && permission.hidden);
+        check_status(delegate, status, @"Active", true);
         [delegate stopFix];
     }
 }
@@ -390,7 +406,7 @@ int main(void) {
         CFRelease(window_element);
         CFRelease(hit_element);
         CFRelease(system_element);
-        puts("PASS: AX budget, sheets/dialogs, partial failures, event preservation, tap recovery/status");
+        puts("PASS: AX budget, sheets/dialogs, partial failures, event preservation, tap recovery/status/icon");
     }
     return 0;
 }

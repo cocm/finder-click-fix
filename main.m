@@ -132,15 +132,37 @@ static bool enable_tap(Context *context) {
     return tap_is_running(context);
 }
 
+static NSImage *inactive_icon(NSImage *base) {
+    NSImage *badge = [NSImage imageWithSystemSymbolName:@"info.circle.fill" accessibilityDescription:nil];
+    NSImage *image = [NSImage imageWithSize:NSMakeSize(18, 18) flipped:NO drawingHandler:^BOOL(NSRect rect) {
+        [base drawInRect:rect];
+        CGContextRef graphics = NSGraphicsContext.currentContext.CGContext;
+        CGContextSaveGState(graphics);
+        CGContextSetBlendMode(graphics, kCGBlendModeClear);
+        CGContextFillEllipseInRect(graphics, CGRectMake(8.5, 8.5, 10, 10));
+        CGContextRestoreGState(graphics);
+        [badge drawInRect:NSMakeRect(9.5, 9.5, 8.5, 8.5)];
+        return YES;
+    }];
+    image.template = YES;
+    return image;
+}
+
 @interface AppDelegate : NSObject <NSApplicationDelegate, NSMenuDelegate> {
     Context _context;
     CFRunLoopSourceRef _source;
     NSStatusItem *_statusItem;
     NSMenuItem *_stateItem;
     NSMenuItem *_permissionItem;
+    NSTextField *_stateLabel;
+    NSImageView *_stateSymbol;
+    NSImage *_normalImage;
+    NSImage *_inactiveImage;
+    id _activationObserver;
 }
 - (instancetype)initWithVerbose:(bool)verbose;
-- (void)updateStatus:(NSString *)state;
+- (NSMenu *)makeMenu;
+- (void)updateStatus;
 - (void)stopFix;
 @end
 
@@ -150,7 +172,7 @@ static CGEventRef handle_event(CGEventTapProxy proxy, CGEventType type,
     Context *context = user_info;
     if (type == kCGEventTapDisabledByTimeout || type == kCGEventTapDisabledByUserInput) {
         bool running = enable_tap(context);
-        [context->delegate updateStatus:running ? @"動作中" : @"マウス入力を取得できません"];
+        [context->delegate updateStatus];
         if (!running && context->verbose)
             fprintf(stderr, "Finder Click Fix: event tap could not be re-enabled.\n");
     } else if (type == kCGEventLeftMouseDown) {
@@ -171,10 +193,20 @@ static CGEventRef handle_event(CGEventTapProxy proxy, CGEventType type,
     return self;
 }
 
-- (void)updateStatus:(NSString *)state {
+- (void)updateStatus {
+    bool trusted = AXIsProcessTrusted();
+    bool running = trusted && tap_is_running(&_context);
+    NSString *state = running ? @"Active" : trusted
+        ? @"Inactive: Mouse input unavailable" : @"Inactive: Accessibility required";
     _stateItem.title = state;
+    _stateLabel.stringValue = state;
+    _stateSymbol.image = [NSImage imageWithSystemSymbolName:running ? @"checkmark.circle.fill" : @"info.circle.fill"
+        accessibilityDescription:nil];
+    _stateSymbol.contentTintColor = running ? NSColor.systemGreenColor : NSColor.systemOrangeColor;
+    _statusItem.button.image = running ? _normalImage : _inactiveImage;
     _statusItem.button.toolTip = [@"Finder Click Fix — " stringByAppendingString:state];
-    _permissionItem.hidden = tap_is_running(&_context);
+    _statusItem.button.accessibilityValue = state;
+    _permissionItem.hidden = running;
     if (_context.verbose) fprintf(stderr, "Finder Click Fix status: %s\n", state.UTF8String);
 }
 
@@ -198,12 +230,13 @@ static CGEventRef handle_event(CGEventTapProxy proxy, CGEventType type,
 - (void)startFix {
     if (!AXIsProcessTrusted()) {
         [self stopFix];
-        [self updateStatus:@"アクセシビリティ権限が必要"];
+        [self updateStatus];
         return;
     }
     if (_context.tap) {
         if (CFMachPortIsValid(_context.tap)) {
-            [self updateStatus:enable_tap(&_context) ? @"動作中" : @"マウス入力を取得できません"];
+            enable_tap(&_context);
+            [self updateStatus];
             return;
         }
         [self stopFix];
@@ -213,58 +246,78 @@ static CGEventRef handle_event(CGEventTapProxy proxy, CGEventType type,
         kCGEventTapOptionDefault, CGEventMaskBit(kCGEventLeftMouseDown), handle_event, &_context);
     if (!_context.tap) {
         [self stopFix];
-        [self updateStatus:@"マウス入力を取得できません"];
+        [self updateStatus];
         return;
     }
     _source = CFMachPortCreateRunLoopSource(NULL, _context.tap, 0);
     if (!_source) {
         [self stopFix];
-        [self updateStatus:@"マウス入力を取得できません"];
+        [self updateStatus];
         return;
     }
     CFRunLoopAddSource(CFRunLoopGetMain(), _source, kCFRunLoopCommonModes);
     if (!enable_tap(&_context)) {
         [self stopFix];
-        [self updateStatus:@"マウス入力を取得できません"];
+        [self updateStatus];
         return;
     }
-    [self updateStatus:@"動作中"];
+    [self updateStatus];
     if (_context.verbose) fprintf(stderr, "Finder Click Fix is running.\n");
+}
+
+- (NSMenu *)makeMenu {
+    NSMenu *menu = [[NSMenu alloc] initWithTitle:@"Finder Click Fix"];
+    menu.autoenablesItems = NO;
+    menu.delegate = self;
+
+    NSView *header = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 280, 64)];
+    NSTextField *name = [NSTextField labelWithString:@"Finder Click Fix"];
+    name.font = [NSFont systemFontOfSize:13 weight:NSFontWeightSemibold];
+    name.frame = NSMakeRect(14, 38, 252, 18);
+    [header addSubview:name];
+    _stateSymbol = [[NSImageView alloc] initWithFrame:NSMakeRect(14, 14, 12, 12)];
+    [header addSubview:_stateSymbol];
+    _stateLabel = [NSTextField labelWithString:@""];
+    _stateLabel.font = [NSFont systemFontOfSize:12];
+    _stateLabel.frame = NSMakeRect(32, 11, 234, 18);
+    [header addSubview:_stateLabel];
+    _stateItem = [[NSMenuItem alloc] initWithTitle:@"" action:NULL keyEquivalent:@""];
+    _stateItem.enabled = NO;
+    _stateItem.view = header;
+    [menu addItem:_stateItem];
+    [menu addItem:NSMenuItem.separatorItem];
+    _permissionItem = [[NSMenuItem alloc] initWithTitle:@"Accessibility Settings…"
+        action:@selector(openAccessibility:) keyEquivalent:@""];
+    _permissionItem.target = self;
+    [menu addItem:_permissionItem];
+    NSMenuItem *quitItem = [[NSMenuItem alloc] initWithTitle:@"Quit Finder Click Fix" action:@selector(terminate:) keyEquivalent:@"q"];
+    quitItem.target = NSApp;
+    [menu addItem:quitItem];
+    return menu;
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
     (void)notification;
     _statusItem = [NSStatusBar.systemStatusBar statusItemWithLength:NSSquareStatusItemLength];
-    NSImage *image = [NSBundle.mainBundle imageForResource:@"StatusIcon"];
-    image.size = NSMakeSize(18, 18);
-    image.template = YES;
-    _statusItem.button.image = image;
+    _normalImage = [NSBundle.mainBundle imageForResource:@"StatusIcon"];
+    _normalImage.size = NSMakeSize(18, 18);
+    _normalImage.template = YES;
+    _inactiveImage = inactive_icon(_normalImage);
     _statusItem.button.accessibilityLabel = @"Finder Click Fix";
-
-    NSMenu *menu = [[NSMenu alloc] initWithTitle:@"Finder Click Fix"];
-    menu.autoenablesItems = NO;
-    menu.delegate = self;
-    NSMenuItem *nameItem = [[NSMenuItem alloc] initWithTitle:@"Finder Click Fix" action:NULL keyEquivalent:@""];
-    nameItem.enabled = NO;
-    [menu addItem:nameItem];
-    _stateItem = [[NSMenuItem alloc] initWithTitle:@"" action:NULL keyEquivalent:@""];
-    _stateItem.enabled = NO;
-    [menu addItem:_stateItem];
-    _permissionItem = [[NSMenuItem alloc] initWithTitle:@"アクセシビリティ設定を開く…"
-        action:@selector(openAccessibility:) keyEquivalent:@""];
-    _permissionItem.target = self;
-    [menu addItem:_permissionItem];
-    [menu addItem:NSMenuItem.separatorItem];
-    NSMenuItem *quitItem = [[NSMenuItem alloc] initWithTitle:@"終了" action:@selector(terminate:) keyEquivalent:@"q"];
-    quitItem.target = NSApp;
-    [menu addItem:quitItem];
-    _statusItem.menu = menu;
+    _statusItem.menu = [self makeMenu];
+    __weak AppDelegate *delegate = self;
+    _activationObserver = [NSWorkspace.sharedWorkspace.notificationCenter
+        addObserverForName:NSWorkspaceDidActivateApplicationNotification object:nil
+        queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification *note) {
+            (void)note;
+            [delegate startFix];
+        }];
     [self startFix];
 }
 
 - (void)menuWillOpen:(NSMenu *)menu {
     (void)menu;
-    // Recheck on user interaction, without an idle timer or permission polling.
+    // Recheck on menu interaction and app activation, without a polling timer.
     [self startFix];
 }
 
@@ -276,6 +329,10 @@ static CGEventRef handle_event(CGEventTapProxy proxy, CGEventType type,
 
 - (void)applicationWillTerminate:(NSNotification *)notification {
     (void)notification;
+    if (_activationObserver) {
+        [NSWorkspace.sharedWorkspace.notificationCenter removeObserver:_activationObserver];
+        _activationObserver = nil;
+    }
     [self stopFix];
 }
 @end

@@ -8,6 +8,8 @@ Requires macOS 13 or later. Open the DMG and drag the app to Applications. Launc
 
 Desktop, dialogs, and sheets are excluded.
 
+An info badge on the menu bar icon means the fix is inactive. Open the menu for the reason and Accessibility Settings.
+
 ## License
 
 [MIT](LICENSE)
