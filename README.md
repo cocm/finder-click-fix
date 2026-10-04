@@ -15,6 +15,19 @@ sh build.sh
 
 `/Applications/Finder Click Fix.app`に設置します。
 
+## DMG
+
+```sh
+sh build.sh --dmg
+```
+
+署名済みDMGを`dist/`に生成します。公証する場合は、認証をKeychainへ一度登録してから実行します。
+
+```sh
+xcrun notarytool store-credentials finder-click-fix --team-id 7L8SQDRWQK
+sh build.sh --dmg finder-click-fix
+```
+
 ## テスト
 
 ```sh
