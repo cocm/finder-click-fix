@@ -10,6 +10,8 @@ Desktop, dialogs, and sheets are excluded.
 
 An info badge on the menu bar icon means the fix is inactive. Open the menu for the reason and Permission Settings.
 
+Enable **Launch at Login** in the menu to start the app automatically when you log in.
+
 ## License
 
 [MIT](LICENSE)

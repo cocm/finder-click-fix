@@ -1,4 +1,5 @@
 #import <AppKit/AppKit.h>
+#import <ServiceManagement/ServiceManagement.h>
 #include <ApplicationServices/ApplicationServices.h>
 #include <libproc.h>
 #include <assert.h>
@@ -27,6 +28,17 @@ static CFRunLoopSourceRef fake_CFMachPortCreateRunLoopSource(CFAllocatorRef, CFM
 static bool fake_CGEventTapIsEnabled(CFMachPortRef);
 static void fake_CGEventTapEnable(CFMachPortRef, bool);
 
+@interface TestLoginService : NSObject
+@property(class, readonly) TestLoginService *mainAppService;
+@property(readonly) SMAppServiceStatus status;
+- (BOOL)registerAndReturnError:(NSError **)error;
+- (BOOL)unregisterAndReturnError:(NSError **)error;
++ (void)openSystemSettingsLoginItems;
+@end
+
+@interface TestAlert : NSAlert
+@end
+
 #define clock_gettime fake_clock_gettime
 #define proc_pidpath fake_proc_pidpath
 #define AXIsProcessTrusted fake_AXIsProcessTrusted
@@ -44,10 +56,14 @@ static void fake_CGEventTapEnable(CFMachPortRef, bool);
 #define CFMachPortCreateRunLoopSource fake_CFMachPortCreateRunLoopSource
 #define CGEventTapIsEnabled fake_CGEventTapIsEnabled
 #define CGEventTapEnable fake_CGEventTapEnable
+#define SMAppService TestLoginService
+#define NSAlert TestAlert
 #define main app_main
 #include "main.m"
 #undef main
 #undef AXUIElementCreateApplication
+#undef SMAppService
+#undef NSAlert
 
 static AXUIElementRef system_element, hit_element, window_element, app_element, other_window;
 static CFMachPortRef tap_token;
@@ -61,6 +77,45 @@ static struct {
     bool fail_enable, fail_create, fail_source;
     CFStringRef hit_role, top_role, subrole;
 } fixture;
+
+static struct {
+    SMAppServiceStatus status, registration_status;
+    int registrations, unregistrations, settings, alerts;
+    bool fail_register, fail_unregister;
+} login_fixture;
+
+@implementation TestLoginService
++ (TestLoginService *)mainAppService { return [[self alloc] init]; }
+- (SMAppServiceStatus)status { return login_fixture.status; }
+- (BOOL)registerAndReturnError:(NSError **)error {
+    login_fixture.registrations++;
+    if (login_fixture.fail_register) {
+        *error = [NSError errorWithDomain:@"TestLoginService" code:1 userInfo:nil];
+        return NO;
+    }
+    login_fixture.status = login_fixture.registration_status;
+    return YES;
+}
+- (BOOL)unregisterAndReturnError:(NSError **)error {
+    login_fixture.unregistrations++;
+    if (login_fixture.fail_unregister) {
+        *error = [NSError errorWithDomain:@"TestLoginService" code:2 userInfo:nil];
+        return NO;
+    }
+    login_fixture.status = SMAppServiceStatusNotRegistered;
+    return YES;
+}
++ (void)openSystemSettingsLoginItems { login_fixture.settings++; }
+@end
+
+@implementation TestAlert
+- (NSModalResponse)runModal {
+    assert([self.messageText isEqualToString:@"Couldn’t update Launch at Login"]);
+    assert(self.informativeText.length > 0);
+    login_fixture.alerts++;
+    return NSAlertFirstButtonReturn;
+}
+@end
 
 static void reset_fixture(void) {
     memset(&fixture, 0, sizeof(fixture));
@@ -386,6 +441,51 @@ static void test_tap(CGEventRef event) {
     }
 }
 
+static void test_login_item(void) {
+    reset_fixture();
+    fixture.trusted = false;
+    memset(&login_fixture, 0, sizeof(login_fixture));
+    login_fixture.registration_status = SMAppServiceStatusEnabled;
+    AppDelegate *delegate = [[AppDelegate alloc] initWithVerbose:false];
+    NSMenu *menu = [delegate makeMenu];
+    NSMenuItem *item = [delegate valueForKey:@"loginItem"];
+    NSMenuItem *settings = [delegate valueForKey:@"loginSettingsItem"];
+    assert(item.state == NSControlStateValueOff && settings.hidden);
+    assert(login_fixture.registrations == 0); // Startup never opts the user in.
+    [menu performActionForItemAtIndex:[menu indexOfItem:item]];
+    assert(login_fixture.registrations == 1 && item.state == NSControlStateValueOn);
+    [menu performActionForItemAtIndex:[menu indexOfItem:item]];
+    assert(login_fixture.unregistrations == 1 && item.state == NSControlStateValueOff);
+
+    login_fixture.status = SMAppServiceStatusRequiresApproval;
+    [delegate menuWillOpen:menu]; // An external settings change must be reflected.
+    assert(item.state == NSControlStateValueMixed && !settings.hidden);
+    assert([item.title isEqualToString:@"Launch at Login — Approval Required"]);
+    [menu performActionForItemAtIndex:[menu indexOfItem:settings]];
+    assert(login_fixture.settings == 1 && login_fixture.registrations == 1);
+    [menu performActionForItemAtIndex:[menu indexOfItem:item]];
+    assert(login_fixture.unregistrations == 2 && item.state == NSControlStateValueOff && settings.hidden);
+
+    login_fixture.registration_status = SMAppServiceStatusRequiresApproval;
+    [delegate toggleLoginItem:nil];
+    assert(item.state == NSControlStateValueMixed && !settings.hidden);
+    login_fixture.status = SMAppServiceStatusEnabled;
+    [delegate menuWillOpen:menu];
+    assert(item.state == NSControlStateValueOn && settings.hidden);
+    assert([item.title isEqualToString:@"Launch at Login"]);
+
+    login_fixture.fail_unregister = true;
+    [delegate toggleLoginItem:nil];
+    assert(item.state == NSControlStateValueOn && login_fixture.alerts == 1);
+    login_fixture.status = SMAppServiceStatusNotRegistered;
+    login_fixture.fail_register = true;
+    [delegate toggleLoginItem:nil];
+    assert(item.state == NSControlStateValueOff && login_fixture.alerts == 2);
+    login_fixture.status = SMAppServiceStatusNotFound;
+    [delegate menuWillOpen:menu];
+    assert(item.state == NSControlStateValueOff && settings.hidden);
+}
+
 int main(void) {
     @autoreleasepool {
         system_element = AXUIElementCreateApplication(100);
@@ -400,13 +500,14 @@ int main(void) {
         CGEventSetIntegerValueField(event, kCGMouseEventClickState, 2);
         test_focus(event);
         test_tap(event);
+        test_login_item();
         CFRelease(event);
         CFRelease(other_window);
         CFRelease(app_element);
         CFRelease(window_element);
         CFRelease(hit_element);
         CFRelease(system_element);
-        puts("PASS: AX budget, sheets/dialogs, partial failures, event preservation, tap recovery/status/icon");
+        puts("PASS: AX budget, sheets/dialogs, partial failures, event preservation, tap recovery/status/icon, login item");
     }
     return 0;
 }

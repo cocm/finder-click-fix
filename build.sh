@@ -19,7 +19,7 @@ cp assets/StatusIcon.png assets/StatusIcon@2x.png assets/AppIcon.icns "$app_path
 cp LICENSE "$app_path/Contents/Resources/"
 rm -f "$app_path/Contents/Resources/StatusIcon.pdf"
 xcrun clang -std=c17 -fobjc-arc -Oz -Wall -Wextra -Werror -mmacosx-version-min=13.0 \
-    main.m -framework AppKit -framework ApplicationServices -framework CoreFoundation \
+    main.m -framework AppKit -framework ApplicationServices -framework CoreFoundation -framework ServiceManagement \
     -o "$app_path/Contents/MacOS/FinderClickFix"
 codesign --force --sign "$signing_identity" --options runtime --timestamp "$app_path"
 codesign --verify --strict "$app_path"

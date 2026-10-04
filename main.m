@@ -1,4 +1,5 @@
 #import <AppKit/AppKit.h>
+#import <ServiceManagement/ServiceManagement.h>
 #include <ApplicationServices/ApplicationServices.h>
 #include <CoreFoundation/CoreFoundation.h>
 #include <libproc.h>
@@ -154,6 +155,8 @@ static NSImage *inactive_icon(NSImage *base) {
     NSStatusItem *_statusItem;
     NSMenuItem *_stateItem;
     NSMenuItem *_permissionItem;
+    NSMenuItem *_loginItem;
+    NSMenuItem *_loginSettingsItem;
     NSTextField *_stateLabel;
     NSImageView *_stateSymbol;
     NSImage *_normalImage;
@@ -163,6 +166,7 @@ static NSImage *inactive_icon(NSImage *base) {
 - (instancetype)initWithVerbose:(bool)verbose;
 - (NSMenu *)makeMenu;
 - (void)updateStatus;
+- (void)updateLoginStatus;
 - (void)stopFix;
 @end
 
@@ -290,6 +294,16 @@ static CGEventRef handle_event(CGEventTapProxy proxy, CGEventType type,
         action:@selector(openAccessibility:) keyEquivalent:@""];
     _permissionItem.target = self;
     [menu addItem:_permissionItem];
+    _loginItem = [[NSMenuItem alloc] initWithTitle:@"Launch at Login"
+        action:@selector(toggleLoginItem:) keyEquivalent:@""];
+    _loginItem.target = self;
+    [menu addItem:_loginItem];
+    _loginSettingsItem = [[NSMenuItem alloc] initWithTitle:@"Login Item Settings…"
+        action:@selector(openLoginItems:) keyEquivalent:@""];
+    _loginSettingsItem.target = self;
+    [menu addItem:_loginSettingsItem];
+    [self updateLoginStatus];
+    [menu addItem:NSMenuItem.separatorItem];
     NSMenuItem *quitItem = [[NSMenuItem alloc] initWithTitle:@"Quit Finder Click Fix" action:@selector(terminate:) keyEquivalent:@"q"];
     quitItem.target = NSApp;
     [menu addItem:quitItem];
@@ -319,6 +333,37 @@ static CGEventRef handle_event(CGEventTapProxy proxy, CGEventType type,
     (void)menu;
     // Recheck on menu interaction and app activation, without a polling timer.
     [self startFix];
+    [self updateLoginStatus];
+}
+
+- (void)updateLoginStatus {
+    SMAppServiceStatus status = SMAppService.mainAppService.status;
+    bool approval = status == SMAppServiceStatusRequiresApproval;
+    _loginItem.state = status == SMAppServiceStatusEnabled ? NSControlStateValueOn
+        : approval ? NSControlStateValueMixed : NSControlStateValueOff;
+    _loginItem.title = approval ? @"Launch at Login — Approval Required" : @"Launch at Login";
+    _loginSettingsItem.hidden = !approval;
+}
+
+- (void)toggleLoginItem:(id)sender {
+    (void)sender;
+    SMAppService *service = SMAppService.mainAppService;
+    SMAppServiceStatus status = service.status;
+    NSError *error = nil;
+    BOOL success = status == SMAppServiceStatusEnabled || status == SMAppServiceStatusRequiresApproval
+        ? [service unregisterAndReturnError:&error] : [service registerAndReturnError:&error];
+    [self updateLoginStatus];
+    if (!success) {
+        NSAlert *alert = [[NSAlert alloc] init];
+        alert.messageText = @"Couldn’t update Launch at Login";
+        alert.informativeText = error.localizedDescription ?: @"Please try again.";
+        [alert runModal];
+    }
+}
+
+- (void)openLoginItems:(id)sender {
+    (void)sender;
+    [SMAppService openSystemSettingsLoginItems];
 }
 
 - (void)openAccessibility:(id)sender {
