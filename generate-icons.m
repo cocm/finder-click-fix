@@ -37,7 +37,7 @@ static NSImage *mark(NSColor *color) {
         [pointer closePath];
         NSAffineTransform *offset = [NSAffineTransform transform];
         NSRect bounds = pointer.bounds;
-        [offset translateXBy:NSMidX(bounds) + 0.6 yBy:NSMidY(bounds) - 0.6];
+        [offset translateXBy:NSMidX(bounds) + 1.0 yBy:NSMidY(bounds) - 0.9];
         [offset scaleBy:0.72];
         [offset translateXBy:-NSMidX(bounds) yBy:-NSMidY(bounds)];
         [pointer transformUsingAffineTransform:offset];
