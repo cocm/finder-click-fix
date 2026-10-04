@@ -6,34 +6,32 @@ static NSImage *mark(NSColor *color) {
         [color setFill];
         NSBezierPath *window = [NSBezierPath bezierPathWithRoundedRect:NSMakeRect(1, 1, 16, 16)
             xRadius:4 yRadius:4];
-        NSBezierPath *header = [NSBezierPath bezierPathWithRoundedRect:NSMakeRect(3.5, 13, 11, 1.2)
-            xRadius:0.6 yRadius:0.6];
+        NSBezierPath *header = [NSBezierPath bezierPathWithRoundedRect:NSMakeRect(3.5, 13.2, 11, 0.8)
+            xRadius:0.4 yRadius:0.4];
 
         NSBezierPath *pointer = [NSBezierPath bezierPath];
-        [pointer moveToPoint:NSMakePoint(6.1, 12.8)];
-        [pointer curveToPoint:NSMakePoint(5.7, 12.4)
-            controlPoint1:NSMakePoint(5.85, 12.95) controlPoint2:NSMakePoint(5.7, 12.7)];
-        [pointer lineToPoint:NSMakePoint(5.7, 6.0)];
-        [pointer curveToPoint:NSMakePoint(6.5, 5.6)
-            controlPoint1:NSMakePoint(5.7, 5.55) controlPoint2:NSMakePoint(6.1, 5.4)];
-        [pointer lineToPoint:NSMakePoint(7.6, 6.45)];
-        [pointer curveToPoint:NSMakePoint(8.15, 6.35)
-            controlPoint1:NSMakePoint(7.83, 6.64) controlPoint2:NSMakePoint(8.0, 6.61)];
-        [pointer lineToPoint:NSMakePoint(9.3, 4.5)];
-        [pointer curveToPoint:NSMakePoint(10.1, 4.3)
-            controlPoint1:NSMakePoint(9.45, 4.22) controlPoint2:NSMakePoint(9.8, 4.12)];
-        [pointer lineToPoint:NSMakePoint(11.0, 4.9)];
-        [pointer curveToPoint:NSMakePoint(11.2, 5.7)
-            controlPoint1:NSMakePoint(11.27, 5.1) controlPoint2:NSMakePoint(11.39, 5.4)];
-        [pointer lineToPoint:NSMakePoint(10.05, 7.65)];
-        [pointer curveToPoint:NSMakePoint(10.36, 8.03)
-            controlPoint1:NSMakePoint(9.91, 7.86) controlPoint2:NSMakePoint(10.05, 8.02)];
-        [pointer lineToPoint:NSMakePoint(12.3, 8.2)];
-        [pointer curveToPoint:NSMakePoint(12.5, 9.0)
-            controlPoint1:NSMakePoint(12.77, 8.25) controlPoint2:NSMakePoint(12.92, 8.75)];
-        [pointer lineToPoint:NSMakePoint(6.55, 12.7)];
-        [pointer curveToPoint:NSMakePoint(6.1, 12.8)
-            controlPoint1:NSMakePoint(6.4, 12.82) controlPoint2:NSMakePoint(6.25, 12.85)];
+        [pointer moveToPoint:NSMakePoint(6.15, 12.8)];
+        [pointer curveToPoint:NSMakePoint(5.9, 12.64)
+            controlPoint1:NSMakePoint(6.04, 12.88) controlPoint2:NSMakePoint(5.9, 12.8)];
+        [pointer lineToPoint:NSMakePoint(5.9, 6.4)];
+        [pointer curveToPoint:NSMakePoint(6.2, 6.25)
+            controlPoint1:NSMakePoint(5.9, 6.17) controlPoint2:NSMakePoint(6.04, 6.1)];
+        [pointer lineToPoint:NSMakePoint(7.7, 7.6)];
+        [pointer curveToPoint:NSMakePoint(7.97, 7.53)
+            controlPoint1:NSMakePoint(7.8, 7.69) controlPoint2:NSMakePoint(7.9, 7.65)];
+        [pointer lineToPoint:NSMakePoint(9.5, 4.61)];
+        [pointer curveToPoint:NSMakePoint(9.8, 4.49)
+            controlPoint1:NSMakePoint(9.57, 4.47) controlPoint2:NSMakePoint(9.68, 4.42)];
+        [pointer lineToPoint:NSMakePoint(10.8, 5.05)];
+        [pointer curveToPoint:NSMakePoint(10.87, 5.31)
+            controlPoint1:NSMakePoint(10.92, 5.12) controlPoint2:NSMakePoint(10.94, 5.19)];
+        [pointer lineToPoint:NSMakePoint(9.41, 8.09)];
+        [pointer curveToPoint:NSMakePoint(9.55, 8.34)
+            controlPoint1:NSMakePoint(9.34, 8.22) controlPoint2:NSMakePoint(9.4, 8.33)];
+        [pointer lineToPoint:NSMakePoint(12.15, 8.48)];
+        [pointer curveToPoint:NSMakePoint(12.24, 8.79)
+            controlPoint1:NSMakePoint(12.32, 8.49) controlPoint2:NSMakePoint(12.38, 8.67)];
+        [pointer lineToPoint:NSMakePoint(6.15, 12.8)];
         [pointer closePath];
         NSAffineTransform *offset = [NSAffineTransform transform];
         NSRect bounds = pointer.bounds;
