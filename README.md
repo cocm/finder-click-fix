@@ -1,6 +1,6 @@
 # Finder Click Fix for macOS
 
-Clicking an inactive Finder window while moving the mouse even slightly can leave it in the background. This tiny menu bar app brings the clicked window to the front.
+Clicking an inactive Finder window while moving the mouse even slightly can leave it in the background. This tiny menu bar app brings the clicked window to the front. Also supports Xcode.
 
 [Download (Apple Silicon)](https://github.com/cocm/finder-click-fix/releases/latest) · under 300 KB
 

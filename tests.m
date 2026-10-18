@@ -39,6 +39,11 @@ static void fake_CGEventTapEnable(CFMachPortRef, bool);
 @interface TestAlert : NSAlert
 @end
 
+@interface TestRunningApplication : NSObject
+@property(readonly) NSString *bundleIdentifier;
++ (instancetype)runningApplicationWithProcessIdentifier:(pid_t)pid;
+@end
+
 #define clock_gettime fake_clock_gettime
 #define proc_pidpath fake_proc_pidpath
 #define AXIsProcessTrusted fake_AXIsProcessTrusted
@@ -58,12 +63,14 @@ static void fake_CGEventTapEnable(CFMachPortRef, bool);
 #define CGEventTapEnable fake_CGEventTapEnable
 #define SMAppService TestLoginService
 #define NSAlert TestAlert
+#define NSRunningApplication TestRunningApplication
 #define main app_main
 #include "main.m"
 #undef main
 #undef AXUIElementCreateApplication
 #undef SMAppService
 #undef NSAlert
+#undef NSRunningApplication
 
 static AXUIElementRef system_element, hit_element, window_element, app_element, other_window;
 static CFMachPortRef tap_token;
@@ -73,6 +80,8 @@ static struct {
     AXUIElementRef prepared;
     int calls, preparations, fail_call, fail_preparation, overrun_call, writes;
     int tap_creations, tap_enables, tap_invalidations;
+    int app_lookups;
+    const char *bundle_identifier;
     bool finder, frontmost, same_window, trusted, tap_valid, tap_enabled;
     bool fail_enable, fail_create, fail_source;
     CFStringRef hit_role, top_role, subrole;
@@ -83,6 +92,17 @@ static struct {
     int registrations, unregistrations, settings, alerts;
     bool fail_register, fail_unregister;
 } login_fixture;
+
+@implementation TestRunningApplication
++ (instancetype)runningApplicationWithProcessIdentifier:(pid_t)pid {
+    assert(pid == 101);
+    fixture.app_lookups++;
+    return [[self alloc] init];
+}
+- (NSString *)bundleIdentifier {
+    return fixture.bundle_identifier ? [NSString stringWithUTF8String:fixture.bundle_identifier] : nil;
+}
+@end
 
 @implementation TestLoginService
 + (TestLoginService *)mainAppService { return [[self alloc] init]; }
@@ -304,6 +324,7 @@ static void test_focus(CGEventRef event) {
     reset_fixture();
     check_event(event, kCGEventLeftMouseDown);
     assert(fixture.writes == 3);
+    assert(fixture.app_lookups == 0); // Keep Finder's existing path-only check.
     int normal_calls = fixture.calls;
     for (int fail = 1; fail <= normal_calls; fail++) {
         reset_fixture();
@@ -354,6 +375,26 @@ static void test_focus(CGEventRef event) {
     fixture.frontmost = true;
     check_event(event, kCGEventLeftMouseDown);
     assert(fixture.writes == 3); // Another Finder window needs correction.
+    reset_fixture();
+    fixture.finder = false;
+    fixture.bundle_identifier = "com.apple.dt.Xcode";
+    check_event(event, kCGEventLeftMouseDown);
+    assert(fixture.writes == 3 && fixture.app_lookups == 1);
+    reset_fixture();
+    fixture.finder = false;
+    fixture.bundle_identifier = "com.apple.dt.Xcode";
+    fixture.subrole = kAXDialogSubrole;
+    check_event(event, kCGEventLeftMouseDown);
+    assert(fixture.writes == 0); // Xcode dialogs stay excluded.
+    const char *excluded_apps[] = {NULL, "com.apple.finder", "com.apple.Safari",
+        "com.apple.Terminal", "com.apple.dt.Xcode.Helper", "other.app"};
+    for (size_t i = 0; i < sizeof(excluded_apps) / sizeof(excluded_apps[0]); i++) {
+        reset_fixture();
+        fixture.finder = false;
+        fixture.bundle_identifier = excluded_apps[i];
+        check_event(event, kCGEventLeftMouseDown);
+        assert(fixture.calls == 1 && fixture.writes == 0 && fixture.app_lookups == 1);
+    }
     reset_fixture();
     fixture.finder = false;
     fixture.delay = 0.100;
@@ -507,7 +548,7 @@ int main(void) {
         CFRelease(window_element);
         CFRelease(hit_element);
         CFRelease(system_element);
-        puts("PASS: AX budget, sheets/dialogs, partial failures, event preservation, tap recovery/status/icon, login item");
+        puts("PASS: Finder/Xcode targeting, AX budget, sheets/dialogs, partial failures, event preservation, tap recovery/status/icon, login item");
     }
     return 0;
 }

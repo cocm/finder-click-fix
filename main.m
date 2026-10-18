@@ -73,7 +73,9 @@ static void focus_finder(Context *context, CGPoint point) {
         goto done;
     if (AXUIElementGetPid(hit, &pid) != kAXErrorSuccess ||
         proc_pidpath(pid, path, sizeof(path)) <= 0 ||
-        strcmp(path, "/System/Library/CoreServices/Finder.app/Contents/MacOS/Finder"))
+        (strcmp(path, "/System/Library/CoreServices/Finder.app/Contents/MacOS/Finder") &&
+         ![[NSRunningApplication runningApplicationWithProcessIdentifier:pid].bundleIdentifier
+             isEqualToString:@"com.apple.dt.Xcode"]))
         goto done;
 
     value = copy_attribute(hit, kAXRoleAttribute, deadline);
